@@ -1,0 +1,45 @@
+import java.util.ArrayList;
+
+class Course {
+    private String courseName;
+    private ArrayList<String> students;  // List of enrolled students
+
+    
+    public Course(String courseName) {
+        this.courseName = courseName;
+        this.students = new ArrayList<>();
+    }
+
+    
+    public void addStudent(String studentName) {
+        students.add(studentName);
+        System.out.println(studentName + " has been enrolled in " + courseName);
+    }
+
+     
+    public void listStudents() {
+        System.out.println("\nStudents enrolled in " + courseName + ":");
+        if (students.isEmpty()) {
+            System.out.println("No students enrolled yet.");
+        } else {
+            for (int i = 0; i < students.size(); i++) {
+                System.out.println((i + 1) + ". " + students.get(i));
+            }
+        }
+    }
+}
+
+
+public class Main {
+    public static void main(String[] args) {
+        Course course = new Course("Computer Science");
+
+        
+        course.addStudent("Alice");
+        course.addStudent("Bob");
+        course.addStudent("Charlie");
+
+        
+        course.listStudents();
+    }
+}
