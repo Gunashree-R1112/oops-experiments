@@ -1,0 +1,110 @@
+import java.util.*;
+import java.util.regex.Pattern;
+
+/**
+ * PasswordValidator using regex-based rules.
+ * - Configure rules in the RULES list.
+ * - validate(String) returns a list of human-readable failures (empty list => valid).
+ */
+public class PasswordValidator {
+
+    /** A single validation rule driven by a regex (match or no-match) with a message. */
+    static final class Rule {
+        private final String name;         // short ID for the rule
+        private final Pattern pattern;     // compiled regex
+        private final boolean mustMatch;   // true: password must match; false: password must NOT match
+        private final String errorMessage; // shown when rule fails
+
+        Rule(String name, String regex, boolean mustMatch, String errorMessage) {
+            this.name = name;
+            this.pattern = Pattern.compile(regex);
+            this.mustMatch = mustMatch;
+            this.errorMessage = errorMessage;
+        }
+
+        Optional<String> test(String pwd) {
+            boolean matches = pattern.matcher(pwd).find(); // use find() so we can do ".*[A-Z].*"-style checks easily
+            boolean ok = mustMatch ? matches : !matches;
+            return ok ? Optional.empty() : Optional.of(errorMessage);
+        }
+
+        @Override public String toString() { return name; }
+    }
+
+    /** Common rules (tweak as needed). Order matters for reporting/readability. */
+    private static final List<Rule> RULES = List.of(
+        // Length: use a regex to anchor entire string and check bounds quickly
+        new Rule("LENGTH_8_64", "^(?s).{8,64}$", true,
+                 "Password must be 8–64 characters long."),
+        // At least one lowercase
+        new Rule("LOWERCASE", "[a-z]", true,
+                 "Add at least one lowercase letter (a–z)."),
+        // At least one uppercase
+        new Rule("UPPERCASE", "[A-Z]", true,
+                 "Add at least one uppercase letter (A–Z)."),
+        // At least one digit
+        new Rule("DIGIT", "\\d", true,
+                 "Add at least one digit (0–9)."),
+        // At least one special (tune the set as your policy requires)
+        new Rule("SPECIAL", "[^A-Za-z0-9]", true,
+                 "Add at least one special character (e.g., !@#$%^&*)."),
+        // No whitespace anywhere
+        new Rule("NO_WHITESPACE", "\\s", false,
+                 "Remove whitespace (spaces, tabs, newlines)."),
+        // No same character repeated 3 or more times in a row
+        new Rule("NO_TRIPLE_REPEAT", "(.)\\1{2,}", false,
+                 "Avoid repeating the same character 3+ times in a row."),
+        // No common trivial patterns (examples; extend as needed)
+        new Rule("NO_COMMON_SEQ", "(?i)(password|qwerty|letmein|admin|welcome|iloveyou|abc123|123456)", false,
+                 "Avoid common/guessable patterns like 'password', '123456', etc.")
+    );
+
+    /**
+     * Validate password against RULES. Returns a list of failures.
+     * If the list is empty, the password passed all rules.
+     */
+    public static List<String> validate(String password) {
+        Objects.requireNonNull(password, "password");
+        List<String> failures = new ArrayList<>();
+        // First, a fast null-safe check for length using Java (mirrors the regex rule, but gives faster fail & clearer error merging)
+        if (password.length() < 8 || password.length() > 64) {
+            failures.add("Password must be 8–64 characters long.");
+        }
+        for (Rule r : RULES) {
+            r.test(password).ifPresent(failures::add);
+        }
+        return deduplicate(failures);
+    }
+
+    /** Optional helper to remove duplicate messages if both length checks fire, etc. */
+    private static List<String> deduplicate(List<String> messages) {
+        return new ArrayList<>(new LinkedHashSet<>(messages));
+    }
+
+    // Demo
+    public static void main(String[] args) {
+        List<String> samples = List.of(
+            "short7!",             // too short
+            "NoDigitsOrSpecials",  // missing digit & special
+            "ALLCAPS123!",         // missing lowercase
+            "clean Pass1!",        // contains whitespace
+            "aaaBBB111!!!",        // has triple repeat 'a'
+            "Password123!",        // contains 'Password' common pattern
+            "Str0ng!Enough"        // should pass
+        );
+
+        for (String pwd : samples) {
+            List<String> issues = validate(pwd);
+            System.out.println("Password: \"" + pwd + "\"");
+            if (issues.isEmpty()) {
+                System.out.println("  ✓ Valid");
+            } else {
+                System.out.println("  ✗ Invalid. Failed rules:");
+                for (String msg : issues) {
+                    System.out.println("    - " + msg);
+                }
+            }
+            System.out.println();
+        }
+    }
+}
