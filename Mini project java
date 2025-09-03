@@ -1,0 +1,163 @@
+import java.util.*;
+
+// Task class
+class Task {
+    private int id;
+    private String title;
+    private String description;
+    private String priority;
+    private String deadline;
+
+    // Constructor
+    public Task(int id, String title, String description, String priority, String deadline) {
+        this.id = id;
+        this.title = title;
+        this.description = description;
+        this.priority = priority;
+        this.deadline = deadline;
+    }
+
+    // Getters and Setters
+    public int getId() { return id; }
+    public String getTitle() { return title; }
+    public String getDescription() { return description; }
+    public String getPriority() { return priority; }
+    public String getDeadline() { return deadline; }
+
+    public void setTitle(String title) { this.title = title; }
+    public void setDescription(String description) { this.description = description; }
+    public void setPriority(String priority) { this.priority = priority; }
+    public void setDeadline(String deadline) { this.deadline = deadline; }
+
+    @Override
+    public String toString() {
+        return "Task ID: " + id +
+               "\nTitle: " + title +
+               "\nDescription: " + description +
+               "\nPriority: " + priority +
+               "\nDeadline: " + deadline + "\n";
+    }
+}
+
+// Main Application
+public class TaskManager {
+    private static ArrayList<Task> tasks = new ArrayList<>();
+    private static Scanner sc = new Scanner(System.in);
+
+    public static void main(String[] args) {
+        int choice;
+        do {
+            System.out.println("\n=== Task Management Application ===");
+            System.out.println("1. Add Task");
+            System.out.println("2. View Tasks");
+            System.out.println("3. Update Task");
+            System.out.println("4. Delete Task");
+            System.out.println("5. Exit");
+            System.out.print("Enter your choice: ");
+
+            try {
+                choice = sc.nextInt();
+                sc.nextLine(); // consume newline
+
+                switch (choice) {
+                    case 1: addTask(); break;
+                    case 2: viewTasks(); break;
+                    case 3: updateTask(); break;
+                    case 4: deleteTask(); break;
+                    case 5: System.out.println("Exiting... Thank you!"); break;
+                    default: System.out.println("Invalid choice! Try again.");
+                }
+            } catch (InputMismatchException e) {
+                System.out.println("Error: Please enter a valid number!");
+                sc.nextLine(); // clear invalid input
+                choice = 0; // reset choice
+            }
+        } while (choice != 5);
+    }
+
+    // Add Task
+    private static void addTask() {
+        try {
+            System.out.print("Enter Task ID: ");
+            int id = sc.nextInt();
+            sc.nextLine();
+
+            System.out.print("Enter Title: ");
+            String title = sc.nextLine();
+
+            System.out.print("Enter Description: ");
+            String description = sc.nextLine();
+
+            System.out.print("Enter Priority (High/Medium/Low): ");
+            String priority = sc.nextLine();
+
+            System.out.print("Enter Deadline (dd-mm-yyyy): ");
+            String deadline = sc.nextLine();
+
+            tasks.add(new Task(id, title, description, priority, deadline));
+            System.out.println("Task added successfully!");
+        } catch (Exception e) {
+            System.out.println("Error while adding task: " + e.getMessage());
+        }
+    }
+
+    // View Tasks
+    private static void viewTasks() {
+        if (tasks.isEmpty()) {
+            System.out.println("No tasks available!");
+        } else {
+            for (Task t : tasks) {
+                System.out.println(t);
+            }
+        }
+    }
+
+    // Update Task
+    private static void updateTask() {
+        System.out.print("Enter Task ID to update: ");
+        int id = sc.nextInt();
+        sc.nextLine();
+
+        boolean found = false;
+        for (Task t : tasks) {
+            if (t.getId() == id) {
+                System.out.print("Enter new Title: ");
+                t.setTitle(sc.nextLine());
+                System.out.print("Enter new Description: ");
+                t.setDescription(sc.nextLine());
+                System.out.print("Enter new Priority: ");
+                t.setPriority(sc.nextLine());
+                System.out.print("Enter new Deadline: ");
+                t.setDeadline(sc.nextLine());
+                System.out.println("Task updated successfully!");
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            System.out.println("Task not found!");
+        }
+    }
+
+    // Delete Task
+    private static void deleteTask() {
+        System.out.print("Enter Task ID to delete: ");
+        int id = sc.nextInt();
+        sc.nextLine();
+
+        Iterator<Task> itr = tasks.iterator();
+        boolean found = false;
+        while (itr.hasNext()) {
+            Task t = itr.next();
+            if (t.getId() == id) {
+                itr.remove();
+                System.out.println("Task deleted successfully!");
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            System.out.println("Task not found!");
+        }
+    }
+}
