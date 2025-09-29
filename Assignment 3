@@ -1,0 +1,126 @@
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class WorkStealingDemo {
+    static final int NUM_WORKERS = 4;
+    static final int TOTAL_TASKS = 10;  // only 10 tasks
+    private final List<LinkedBlockingDeque<Runnable>> deques = new ArrayList<>();
+    private final List<Thread> workers = new ArrayList<>();
+    private final AtomicInteger tasksRemaining = new AtomicInteger(TOTAL_TASKS);
+    private final Random random = new Random();
+
+    // Task wrapper with original owner
+    static class MyTask implements Runnable {
+        private final int id;
+        private final int owner;
+        private final Random random = new Random();
+
+        MyTask(int id, int owner) {
+            this.id = id;
+            this.owner = owner;
+        }
+
+        @Override
+        public void run() {
+            try {
+                int workMs = 150 + random.nextInt(350);
+                System.out.printf(
+                        "[Task %2d | Owner-%d] started on %s (work %d ms)%n",
+                        id, owner, Thread.currentThread().getName(), workMs);
+                Thread.sleep(workMs);
+                System.out.printf(
+                        "[Task %2d | Owner-%d] finished on %s%n",
+                        id, owner, Thread.currentThread().getName());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    public static void main(String[] args) throws InterruptedException {
+        new WorkStealingDemo().startDemo();
+    }
+
+    void startDemo() throws InterruptedException {
+        // Create deques
+        for (int i = 0; i < NUM_WORKERS; i++) {
+            deques.add(new LinkedBlockingDeque<>());
+        }
+
+        // Create workers
+        for (int i = 0; i < NUM_WORKERS; i++) {
+            int id = i;
+            Thread t = new Thread(() -> workerLoop(id), "Worker-" + id);
+            workers.add(t);
+        }
+
+        // Assign tasks unevenly: most to Worker-0, fewer to others
+        int assigned = 0;
+        for (int i = 0; i < TOTAL_TASKS; i++) {
+            int target;
+            if (i < TOTAL_TASKS * 0.6) target = 0;      // 60% to worker 0
+            else if (i < TOTAL_TASKS * 0.8) target = 1; // 20% to worker 1
+            else target = 2 + (i % (NUM_WORKERS - 2));  // rest spread
+
+            MyTask task = new MyTask(i, target);
+            deques.get(target).addFirst(task);
+            assigned++;
+        }
+
+        System.out.printf("Assigned %d tasks; starting %d workers.%n",
+                assigned, NUM_WORKERS);
+
+        // Start workers
+        workers.forEach(Thread::start);
+
+        // Wait for completion
+        for (Thread t : workers) {
+            t.join();
+        }
+
+        System.out.println("All tasks done. Demo finished.");
+    }
+
+    void workerLoop(int myId) {
+        LinkedBlockingDeque<Runnable> myDeque = deques.get(myId);
+
+        while (tasksRemaining.get() > 0) {
+            try {
+                // Try local task
+                Runnable task = myDeque.pollFirst(100, TimeUnit.MILLISECONDS);
+                if (task != null) {
+                    task.run();
+                    tasksRemaining.decrementAndGet();
+                    continue;
+                }
+
+                // Try stealing
+                boolean stolen = false;
+                for (int i = 0; i < deques.size(); i++) {
+                    if (i == myId) continue;
+                    LinkedBlockingDeque<Runnable> other = deques.get(i);
+                    Runnable stolenTask = other.pollLast();
+                    if (stolenTask != null) {
+                        System.out.printf("%s stole a task from Worker-%d%n",
+                                Thread.currentThread().getName(), i);
+                        stolenTask.run();
+                        tasksRemaining.decrementAndGet();
+                        stolen = true;
+                        break;
+                    }
+                }
+
+                if (!stolen) {
+                    Thread.yield();
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+
+        System.out.printf("%s exiting (no more tasks).%n",
+                Thread.currentThread().getName());
+    }
+}
