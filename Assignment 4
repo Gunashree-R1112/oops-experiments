@@ -1,0 +1,66 @@
+import java.util.*;
+
+class Employee {
+    int id;
+    String name;
+    String department;
+
+    Employee(int id, String name, String department) {
+        this.id = id;
+        this.name = name;
+        this.department = department;
+    }
+}
+
+public class IndexingWithoutSQL {
+    public static void main(String[] args) {
+        int n = 100000;
+        List<Employee> employees = new ArrayList<>();
+
+        // Step 1: Generate sample data
+        for (int i = 1; i <= n; i++) {
+            String dept = switch (i % 5) {
+                case 0 -> "HR";
+                case 1 -> "Finance";
+                case 2 -> "Sales";
+                case 3 -> "Engineering";
+                default -> "Support";
+            };
+            employees.add(new Employee(i, "Employee" + i, dept));
+        }
+
+        System.out.println("✅ " + n + " employee records generated.");
+
+        // Step 2: Search without index (linear search)
+        String searchDept = "Engineering";
+        long start = System.currentTimeMillis();
+        List<Employee> result1 = new ArrayList<>();
+        for (Employee e : employees) {
+            if (e.department.equals(searchDept)) {
+                result1.add(e);
+            }
+        }
+        long end = System.currentTimeMillis();
+        long timeWithoutIndex = end - start;
+        System.out.println("⏱ Search time without index: " + timeWithoutIndex + " ms (" + result1.size() + " results)");
+
+        // Step 3: Create an index (HashMap)
+        long indexStart = System.currentTimeMillis();
+        Map<String, List<Employee>> index = new HashMap<>();
+        for (Employee e : employees) {
+            index.computeIfAbsent(e.department, k -> new ArrayList<>()).add(e);
+        }
+        long indexEnd = System.currentTimeMillis();
+        System.out.println("✅ Index built in: " + (indexEnd - indexStart) + " ms");
+
+        // Step 4: Search with index (O(1) lookup)
+        start = System.currentTimeMillis();
+        List<Employee> result2 = index.get(searchDept);
+        end = System.currentTimeMillis();
+        long timeWithIndex = end - start;
+        System.out.println("⚡ Search time with index: " + timeWithIndex + " ms (" + result2.size() + " results)");
+
+        // Step 5: Compare
+        System.out.println("📊 Performance improvement: " + (timeWithoutIndex - timeWithIndex) + " ms faster using index.");
+    }
+}
