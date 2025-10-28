@@ -1,0 +1,96 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+
+public class AccessibilityDemo {
+    public static void main(String[] args) {
+        // Create main frame
+        JFrame frame = new JFrame("Keyboard & Accessibility Demo");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(400, 200);
+        frame.setLayout(new FlowLayout());
+
+        // Create components
+        JLabel nameLabel = new JLabel("Name:");
+        JTextField nameField = new JTextField(15);
+        JButton submitButton = new JButton("Submit");
+        JButton clearButton = new JButton("Clear");
+
+        // 1️⃣ Assign Mnemonics (Alt + Key)
+        nameLabel.setDisplayedMnemonic('N'); // Alt + N focuses name field
+        nameLabel.setLabelFor(nameField);
+        submitButton.setMnemonic('S'); // Alt + S triggers submit
+        clearButton.setMnemonic('C');  // Alt + C triggers clear
+
+        // 2️⃣ Add Accessible Names and Descriptions
+        nameField.getAccessibleContext().setAccessibleName("Name Input Field");
+        nameField.getAccessibleContext().setAccessibleDescription("Enter your full name here");
+
+        submitButton.getAccessibleContext().setAccessibleName("Submit Button");
+        submitButton.getAccessibleContext().setAccessibleDescription("Click to submit your name");
+
+        clearButton.getAccessibleContext().setAccessibleName("Clear Button");
+        clearButton.getAccessibleContext().setAccessibleDescription("Click to clear the text field");
+
+        // 3️⃣ Define Actions
+        submitButton.addActionListener(e ->
+            JOptionPane.showMessageDialog(frame, "Hello, " + nameField.getText() + "!")
+        );
+        clearButton.addActionListener(e -> nameField.setText(""));
+
+        // 4️⃣ Set Focus Traversal Order
+        frame.setFocusTraversalPolicy(new CustomFocusTraversalPolicy(
+                new Component[]{nameField, submitButton, clearButton}));
+
+        // Add components to frame
+        frame.add(nameLabel);
+        frame.add(nameField);
+        frame.add(submitButton);
+        frame.add(clearButton);
+
+        frame.setVisible(true);
+    }
+}
+
+// Custom Focus Traversal Policy
+class CustomFocusTraversalPolicy extends FocusTraversalPolicy {
+    private Component[] components;
+
+    public CustomFocusTraversalPolicy(Component[] components) {
+        this.components = components;
+    }
+
+    @Override
+    public Component getComponentAfter(Container focusCycleRoot, Component aComponent) {
+        int idx = (indexOf(aComponent) + 1) % components.length;
+        return components[idx];
+    }
+
+    @Override
+    public Component getComponentBefore(Container focusCycleRoot, Component aComponent) {
+        int idx = (indexOf(aComponent) - 1 + components.length) % components.length;
+        return components[idx];
+    }
+
+    @Override
+    public Component getFirstComponent(Container focusCycleRoot) {
+        return components[0];
+    }
+
+    @Override
+    public Component getLastComponent(Container focusCycleRoot) {
+        return components[components.length - 1];
+    }
+
+    @Override
+    public Component getDefaultComponent(Container focusCycleRoot) {
+        return components[0];
+    }
+
+    private int indexOf(Component c) {
+        for (int i = 0; i < components.length; i++) {
+            if (components[i] == c) return i;
+        }
+        return -1;
+    }
+}
