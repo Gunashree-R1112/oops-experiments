@@ -1,0 +1,143 @@
+import javax.swing.*;
+import java.awt.*;
+import java.util.*;
+
+// Represents a single Task
+class Task {
+    private String title;
+    private boolean completed;
+
+    public Task(String title) {
+        this.title = title;
+        this.completed = false;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public boolean isCompleted() {
+        return completed;
+    }
+
+    public void markCompleted() {
+        completed = true;
+    }
+
+    @Override
+    public String toString() {
+        return (completed ? "[✓] " : "[ ] ") + title;
+    }
+}
+
+// Handles task operations
+class TaskManager {
+    private java.util.List<Task> taskList = new ArrayList<>();
+
+    public void addTask(String title) {
+        taskList.add(new Task(title));
+    }
+
+    public void deleteTask(int index) {
+        if (index >= 0 && index < taskList.size())
+            taskList.remove(index);
+    }
+
+    public void markCompleted(int index) {
+        if (index >= 0 && index < taskList.size())
+            taskList.get(index).markCompleted();
+    }
+
+    public java.util.List<Task> getTasks() {
+        return taskList;
+    }
+}
+
+// GUI class using Swing
+public class TaskManagementApp extends JFrame {
+    private TaskManager manager;
+    private DefaultListModel<String> listModel;
+    private JList<String> taskJList;
+    private JTextField inputField;
+
+    public TaskManagementApp() {
+        manager = new TaskManager();
+        listModel = new DefaultListModel<>();
+
+        // Frame setup
+        setTitle("Task Management Application");
+        setSize(400, 500);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setLayout(new BorderLayout(10, 10));
+        setLocationRelativeTo(null);
+
+        JLabel title = new JLabel("Task Manager", SwingConstants.CENTER);
+        title.setFont(new Font("Arial", Font.BOLD, 22));
+        add(title, BorderLayout.NORTH);
+
+        taskJList = new JList<>(listModel);
+        taskJList.setFont(new Font("Arial", Font.PLAIN, 16));
+        add(new JScrollPane(taskJList), BorderLayout.CENTER);
+
+        JPanel bottomPanel = new JPanel(new GridLayout(2, 1, 5, 5));
+        inputField = new JTextField();
+        bottomPanel.add(inputField);
+
+        JPanel buttonPanel = new JPanel(new GridLayout(1, 3, 5, 5));
+        JButton addBtn = new JButton("Add Task");
+        JButton completeBtn = new JButton("Mark Completed");
+        JButton deleteBtn = new JButton("Delete Task");
+
+        buttonPanel.add(addBtn);
+        buttonPanel.add(completeBtn);
+        buttonPanel.add(deleteBtn);
+        bottomPanel.add(buttonPanel);
+        add(bottomPanel, BorderLayout.SOUTH);
+
+        addBtn.addActionListener(e -> addTask());
+        completeBtn.addActionListener(e -> completeTask());
+        deleteBtn.addActionListener(e -> deleteTask());
+    }
+
+    private void addTask() {
+        String title = inputField.getText().trim();
+        if (!title.isEmpty()) {
+            manager.addTask(title);
+            refreshList();
+            inputField.setText("");
+        } else {
+            JOptionPane.showMessageDialog(this, "Enter a task name!");
+        }
+    }
+
+    private void completeTask() {
+        int index = taskJList.getSelectedIndex();
+        if (index != -1) {
+            manager.markCompleted(index);
+            refreshList();
+        } else {
+            JOptionPane.showMessageDialog(this, "Select a task to mark completed!");
+        }
+    }
+
+    private void deleteTask() {
+        int index = taskJList.getSelectedIndex();
+        if (index != -1) {
+            manager.deleteTask(index);
+            refreshList();
+        } else {
+            JOptionPane.showMessageDialog(this, "Select a task to delete!");
+        }
+    }
+
+    private void refreshList() {
+        listModel.clear();
+        for (Task t : manager.getTasks()) {
+            listModel.addElement(t.toString());
+        }
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new TaskManagementApp().setVisible(true));
+    }
+}
